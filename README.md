@@ -57,7 +57,7 @@ Requirements: the distro `asusctl=6.5.0` package must already be installed.
 
 ```sh
 git clone https://github.com/FakeFu1ure/asusctl-runit.git
-cd asusctl-runit-artix
+cd asusctl-runit
 makepkg -Csi
 sudo asusctl-runit-setup
 ```
