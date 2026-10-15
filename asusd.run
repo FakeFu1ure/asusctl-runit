@@ -1,0 +1,17 @@
+#!/bin/sh
+exec 2>&1
+
+# Match the important parts of upstream asusd.service.
+export IS_SERVICE=1
+export RUST_LOG='info,asusd=debug,rog_platform=debug,tracing::span=error,zbus::object_server=error,zbus::connection::handshake::common=error,zbus::connection::handshake::client=error'
+
+mkdir -p /etc/asusd
+
+# asusd needs the system bus and upstream deliberately sleeps for one second
+# before startup to avoid hid_asus / MCU initialization races.
+while [ ! -S /run/dbus/system_bus_socket ]; do
+    sleep 0.1
+done
+sleep 1
+
+exec /usr/bin/asusd

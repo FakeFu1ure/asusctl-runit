@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'Run as root: sudo asusctl-runit-unsetup' >&2
+    exit 1
+fi
+
+for svc in asus-shutdown asusd; do
+    if [ -e "/run/runit/service/$svc" ]; then
+        sv -w 10 stop "/run/runit/service/$svc" || true
+        rm -f "/run/runit/service/$svc"
+    fi
+done
+
+echo 'asusd and asus-shutdown runit services disabled. Package files were not removed.'

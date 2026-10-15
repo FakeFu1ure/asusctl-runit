@@ -1,0 +1,9 @@
+# makepkg
+src/
+pkg/
+*.pkg.tar.*
+*.tar.gz
+*.tar.zst
+*.zip
+*.log
+*.rej

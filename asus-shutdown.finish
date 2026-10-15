@@ -1,0 +1,8 @@
+#!/bin/sh
+# Upstream exits cleanly after handling PrepareForShutdown.  In runit a clean
+# exit would otherwise be restarted immediately, so mark the service down for
+# the remainder of this boot. A fresh boot starts it normally again.
+if [ "${1:-1}" -eq 0 ] && [ -e /run/runit/service/asus-shutdown ]; then
+    sv down /run/runit/service/asus-shutdown >/dev/null 2>&1 || true
+fi
+exit 0

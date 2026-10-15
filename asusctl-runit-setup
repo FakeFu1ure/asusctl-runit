@@ -1,0 +1,84 @@
+#!/bin/sh
+set -eu
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'Run as root: sudo asusctl-runit-setup' >&2
+    exit 1
+fi
+
+for bin in /usr/bin/asusd /usr/bin/asusctl /usr/bin/asus-shutdown-runit; do
+    if [ ! -x "$bin" ]; then
+        echo "Missing $bin. Install/upgrade asusctl-runit first." >&2
+        exit 1
+    fi
+done
+
+for svc in asusd asus-shutdown; do
+    if [ ! -d "/etc/runit/sv/$svc" ]; then
+        echo "Missing /etc/runit/sv/$svc" >&2
+        exit 1
+    fi
+done
+
+mkdir -p /var/log/asusd /var/log/asus-shutdown
+chmod 755 /var/log/asusd /var/log/asus-shutdown
+
+for svc in asusd asus-shutdown; do
+    if [ ! -e "/run/runit/service/$svc" ]; then
+        ln -s "/etc/runit/sv/$svc" "/run/runit/service/$svc"
+    fi
+
+    # runsv notices new services asynchronously. Wait until its control FIFO
+    # exists so the first `sv start` cannot race service discovery.
+    i=0
+    while [ ! -e "/run/runit/service/$svc/supervise/control" ]; do
+        i=$((i + 1))
+        if [ "$i" -ge 100 ]; then
+            echo "runit did not supervise $svc within 10 seconds" >&2
+            exit 1
+        fi
+        sleep 0.1
+    done
+done
+
+sv -w 15 start /run/runit/service/asusd
+if ! /etc/runit/sv/asusd/check; then
+    echo 'asusd is running but xyz.ljones.Asusd is not ready on D-Bus.' >&2
+    exit 1
+fi
+
+# If a previous clean stop left the supervisor wanting down, start explicitly.
+sv -w 15 start /run/runit/service/asus-shutdown
+
+echo 'asusd:'
+sv status /run/runit/service/asusd
+echo 'asus-shutdown:'
+sv status /run/runit/service/asus-shutdown
+
+echo
+inhibitor_ok=0
+if command -v elogind-inhibit >/dev/null 2>&1; then
+    i=0
+    while [ "$i" -lt 50 ]; do
+        if elogind-inhibit --list 2>/dev/null | grep -q 'asus-shutdown'; then
+            inhibitor_ok=1
+            break
+        fi
+        i=$((i + 1))
+        sleep 0.1
+    done
+fi
+
+if [ "$inhibitor_ok" -eq 1 ]; then
+    echo 'Shutdown delay inhibitor is active via elogind/login1.'
+else
+    echo 'WARNING: asus-shutdown is running but its elogind inhibitor was not found yet.' >&2
+    echo 'Check: elogind-inhibit --list' >&2
+    echo 'Check: tail -n 100 /var/log/asus-shutdown/current' >&2
+fi
+
+echo
+echo 'Dry-run (does not apply anything):'
+echo '  sudo env IS_SERVICE=0 /usr/bin/asus-shutdown-runit'
+echo
+echo 'Do not enable asusd-user on asusctl 6.5.0.'

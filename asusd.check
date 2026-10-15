@@ -1,0 +1,8 @@
+#!/bin/sh
+# Equivalent of systemd Type=dbus / BusName=xyz.ljones.Asusd readiness.
+dbus-send --system \
+  --dest=org.freedesktop.DBus \
+  --type=method_call \
+  --print-reply \
+  / org.freedesktop.DBus.NameHasOwner \
+  string:xyz.ljones.Asusd 2>/dev/null | grep -q 'boolean true'
