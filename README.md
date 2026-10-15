@@ -56,7 +56,7 @@ The patched binary is installed as `/usr/bin/asus-shutdown-runit`; `/usr/bin/asu
 Requirements: the distro `asusctl=6.5.0` package must already be installed.
 
 ```sh
-git clone https://github.com/YOUR_GITHUB_USER/asusctl-runit-artix.git
+git clone https://github.com/FakeFu1ure/asusctl-runit.git
 cd asusctl-runit-artix
 makepkg -Csi
 sudo asusctl-runit-setup
